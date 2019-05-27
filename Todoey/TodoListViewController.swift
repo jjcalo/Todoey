@@ -10,22 +10,26 @@ import UIKit
 
 class TodoListViewController: UITableViewController {
 
-    let defaults = UserDefaults.standard
     var itemArray = ["Learn Swift", "Port SOTO", "Add Value-Added Features", "Incorporate Subscription Model", "Make Thousands"]
     var todoItemArray = [TodoListModel]()
+    let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
     
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
+
+        print(dataFilePath!)
         
-        //Load array from UserDefaults
-        if let items = defaults.array(forKey: "ToDoListArray") as? [TodoListModel] {
-            todoItemArray = items
-        } else {
-            todoItemArray.append(TodoListModel(itemTitle: "First todo", isDone: true))
-            todoItemArray.append(TodoListModel(itemTitle: "First todo", isDone: true))
-            todoItemArray.append(TodoListModel(itemTitle: "First todo", isDone: true))
-        }
+        loadItems()
+        
+        //Load array from Items.plist
+//        if let items = defaults.array(forKey: "ToDoListArray") as? [TodoListModel] {
+//            todoItemArray = items
+//        } else {
+//            todoItemArray.append(TodoListModel(itemTitle: "First todo", isDone: true))
+//            todoItemArray.append(TodoListModel(itemTitle: "First todo", isDone: true))
+//            todoItemArray.append(TodoListModel(itemTitle: "First todo", isDone: true))
+//        }
         
         
     }
@@ -47,7 +51,7 @@ class TodoListViewController: UITableViewController {
         print(String(tableView.cellForRow(at: indexPath)?.textLabel?.text ?? ""))
         tableView.deselectRow(at: indexPath, animated: true)
         todoItemArray[indexPath.row].IsDone = !todoItemArray[indexPath.row].IsDone
-        tableView.reloadData()
+        saveItems()
     }
     
     
@@ -61,9 +65,9 @@ class TodoListViewController: UITableViewController {
             // What will happen when we click the Add Item buttom
             print("Successfully added \(newItemTextfield.text!)")
             let newTodoItem = TodoListModel(itemTitle: newItemTextfield.text!)
+            
             self.todoItemArray.append(newTodoItem)
-            self.defaults.set(self.todoItemArray, forKey: "ToDoListArray")
-            self.tableView.reloadData()
+            self.saveItems()
         }
 
         alert.addTextField { (alertTextField) in
@@ -75,6 +79,29 @@ class TodoListViewController: UITableViewController {
         present(alert, animated: true)
     }
     
+    
+    //MARK - Model Manipulation Methods
+    func saveItems() {
+        let encoder = PropertyListEncoder()
+        
+        do {
+            let data = try encoder.encode(todoItemArray)
+            try data.write(to: dataFilePath!)
+            tableView.reloadData()
+        } catch {
+            print("Error encoding todoItemArray, \(error)")
+        }
+    }
+    
+    func loadItems() {
+        do {
+            let data = try Data.init(contentsOf: dataFilePath!)
+            let decoder = PropertyListDecoder()
+            todoItemArray = try decoder.decode([TodoListModel].self, from: data)
+        } catch {
+            print("Error loading data from Items.plist, \(error)")
+        }
+    }
 
 }
 
