@@ -13,7 +13,8 @@ import CoreData
 class CategoryViewController: UITableViewController {
 
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
-    let tableViewCell = "CategoryCell"
+    let TABLE_VIEW_CELL = "CategoryCell"
+    let SEGUE_TO_ITEMS = "goToItems"
     var categoryArray = [Category]()
 
     
@@ -30,7 +31,7 @@ class CategoryViewController: UITableViewController {
     //MARK - Tableview Datasource Methods
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: tableViewCell, for: indexPath)
+        let cell = tableView.dequeueReusableCell(withIdentifier: TABLE_VIEW_CELL, for: indexPath)
         cell.textLabel?.text = categoryArray[indexPath.row].name
         return cell
     }
@@ -41,7 +42,14 @@ class CategoryViewController: UITableViewController {
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         print(String(tableView.cellForRow(at: indexPath)?.textLabel?.text ?? ""))
-        tableView.deselectRow(at: indexPath, animated: true)
+        performSegue(withIdentifier: SEGUE_TO_ITEMS, sender: self)
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        let destinationVC = segue.destination as! TodoListViewController
+        if let indexPath = tableView.indexPathForSelectedRow {
+            destinationVC.selectedCategory = categoryArray[indexPath.row]
+        }
     }
     
     //MARK - Tableview Delegate Methods
@@ -83,7 +91,7 @@ class CategoryViewController: UITableViewController {
         do {
             categoryArray = try context.fetch(request)
         } catch {
-            print ("Error fetching Item data: \(error)")
+            print ("Error fetching Category data: \(error)")
         }
         tableView.reloadData()
     }
@@ -92,7 +100,7 @@ class CategoryViewController: UITableViewController {
         do {
             try context.save()
         } catch {
-            print("Error saving context, \(error)")
+            print("Error saving category, \(error)")
         }
         tableView.reloadData()
     }
