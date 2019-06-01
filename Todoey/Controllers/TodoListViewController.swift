@@ -23,16 +23,11 @@ class TodoListViewController: UITableViewController {
     let realm = try! Realm()
     
     let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
-    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
 
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
-        
         searchBar.delegate = self as? UISearchBarDelegate
-        
-        print(dataFilePath!)
-        //loadItems()
 
     }
 
@@ -53,11 +48,17 @@ class TodoListViewController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-//        print(String(tableView.cellForRow(at: indexPath)?.textLabel?.text ?? ""))
-//        if (items != nil) {
-//            items![indexPath.row].done = !items![indexPath.row].done
-//        }
-//        saveItems()
+        
+        if let item = items?[indexPath.row] {
+            do {
+                try realm.write {
+                    item.done = !item.done
+                }
+            } catch {
+                print ("Error writing to Realm: \(error)")
+            }
+        }
+        tableView.reloadData()
         tableView.deselectRow(at: indexPath, animated: true)
     }
     
@@ -77,6 +78,7 @@ class TodoListViewController: UITableViewController {
                     try self.realm.write {
                         let newItem = Item()
                         newItem.title = newItemTextfield.text!
+                        newItem.dateCreated = Date()
                         currentCategory.items.append(newItem)
                     }
                 } catch {
@@ -95,57 +97,27 @@ class TodoListViewController: UITableViewController {
         present(alert, animated: true)
     }
     
-    
-    //MARK - Model Manipulation Methods
-    func saveItems(item : Item) {
-        try! realm.write {
-            realm.add(item)
-        }
-        do {
-            try context.save()
-        } catch {
-            print("Error saving context, \(error)")
-        }
-        tableView.reloadData()
-    }
-    
     func loadItems() {
-        
-        items = selectedCategory?.items.sorted(byKeyPath: "title", ascending: true)
-        
-//        do {
-//            let categoryPredicate = NSPredicate(format: "parentCategory.name MATCHES %@", selectedCategory!.name!)
-//            if let searchPredicate = predicate {
-//                request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [categoryPredicate, searchPredicate])
-//            }
-//            else {
-//                request.predicate = categoryPredicate
-//            }
-//            itemArray = try context.fetch(request)
-//        } catch {
-//            print ("Error fetching Item data: \(error)")
-//        }
+        items = selectedCategory?.items.sorted(byKeyPath: "dateCreated", ascending: false)
         tableView.reloadData()
     }
 }
 
 
 //MARK - Search bar Methods
-//extension TodoListViewController : UISearchBarDelegate {
-//    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
-//        let request : NSFetchRequest<Item> = Item.fetchRequest()
-//        let predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
-//        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
-//        loadItems(with: request, predicate: predicate)
-//    }
-//    
-//    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-//        if (searchText.count == 0) {
-//            loadItems()
-//            DispatchQueue.main.async {
-//                searchBar.resignFirstResponder()
-//            }
-//        }
-//    }
-//    
-//}
+extension TodoListViewController : UISearchBarDelegate {
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        items = items?.filter("title CONTAINS[cd] %@", searchBar.text!).sorted(byKeyPath: "title", ascending: true)
+        tableView.reloadData()
+    }
+    
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        if (searchText.count == 0) {
+            loadItems()
+            DispatchQueue.main.async {
+                searchBar.resignFirstResponder()
+            }
+        }
+    }
+    
+}
